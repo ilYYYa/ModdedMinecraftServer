@@ -15,6 +15,8 @@ public class CreepiSquidyEvent implements EventHandler
 	private int stage = 0;
 	private ArrayList<EntityPlayer> players = new ArrayList<EntityPlayer>();
 	
+	//HELLO WORLD!!
+	
 	public CreepiSquidyEvent(World world, BlockPos pos)
 	{
 		this.world = world;
