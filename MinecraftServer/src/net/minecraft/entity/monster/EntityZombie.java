@@ -383,7 +383,7 @@ public class EntityZombie extends EntityMob
             			EntityTippedArrow arrow = new EntityTippedArrow(world, pl.posX, pl.posY + 10, pl.posZ);
 
             			if(Math.random() < 0.3D) arrow.setFire((int)(Math.random() * 2D));
-            			arrow.motionY -= 1.75D;
+            			arrow.motionY -= 2.25D;
             			
             			world.spawnEntityInWorld(arrow);
 
