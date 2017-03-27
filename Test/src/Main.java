@@ -36,7 +36,7 @@ class B
 	
 	B()
 	{
-		
+		System.out.println("This code will run, when you create B class");
 	}
 }
 

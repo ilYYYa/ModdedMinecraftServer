@@ -91,6 +91,8 @@ public class EntityZombie extends EntityMob
     private int lightZ = 0;
     private int upZ = 0;
     
+    private int arrowsThrowed = 0;
+    
     public EntityZombie(World worldIn)
     {
         super(worldIn);
@@ -374,15 +376,22 @@ public class EntityZombie extends EntityMob
                     	if(MinecraftServer.theServer != null) MinecraftServer.theServer.sendMessageForAll("[???]: UUUAAAAaaaa... hehe))");
         			}
         			
-        			EntityTippedArrow arrow = new EntityTippedArrow(world, pl.posX, pl.posY + 10, pl.posZ);
+        			if(arrowsThrowed >= 0 && arrowsThrowed <= 15)
+        			{
+        				arrowsThrowed++;
+        				
+            			EntityTippedArrow arrow = new EntityTippedArrow(world, pl.posX, pl.posY + 10, pl.posZ);
 
-        			if(Math.random() < 0.3D) arrow.setFire((int)(Math.random() * 2D));
-        			arrow.motionY -= 1.75D;
-        			
-        			world.spawnEntityInWorld(arrow);
+            			if(Math.random() < 0.3D) arrow.setFire((int)(Math.random() * 2D));
+            			arrow.motionY -= 1.75D;
+            			
+            			world.spawnEntityInWorld(arrow);
 
-        			PotionEffect P12 = this.getActivePotionEffect(Potion.getPotionById(12));
-                	if(P12 == null || P12.getDuration() == 0) this.addPotionEffect(new PotionEffect(Potion.getPotionById(12), 200, 5));
+            			PotionEffect P12 = this.getActivePotionEffect(Potion.getPotionById(12));
+                    	if(P12 == null || P12.getDuration() == 0) this.addPotionEffect(new PotionEffect(Potion.getPotionById(12), 200, 5));
+        			}
+        			else if(arrowsThrowed >= 15) arrowsThrowed = -60;
+        			else if(arrowsThrowed < 0) arrowsThrowed++;
         		}
         	}
         }
