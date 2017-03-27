@@ -64,7 +64,7 @@ public class CreepiSquidyEvent implements EventHandler
 		switch(n)
 		{
 			case 0: return Blocks.AIR.getDefaultState();
-			case 1: return Blocks.BRICK_BLOCK.getDefaultState();
+			case 1: return Blocks.STONEBRICK.getDefaultState();
 		}
 		
 		return null;
