@@ -218,6 +218,7 @@ public class EntitySquid extends EntityWaterMob
     		{
     			if(MinecraftServer.theServer != null) MinecraftServer.theServer.sendMessageForAll("CreepiSquidy event started");
     			TickHandler.addHandler(new CreepiSquidyEvent(world, creeper.getPosition()));
+    			creeper.modified = false;
     		}
     	}
     	
