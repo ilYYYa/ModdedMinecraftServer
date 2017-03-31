@@ -1,6 +1,7 @@
 package net.minecraft.entity.passive;
 
 import javax.annotation.Nullable;
+
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.MoverType;
 import net.minecraft.entity.SharedMonsterAttributes;
@@ -209,20 +210,20 @@ public class EntitySquid extends EntityWaterMob
         }
     }
     
-    public void onDeath(DamageSource source)
+    @Override
+    public boolean attackEntityFrom(DamageSource source, float amount)
     {
     	if(source.getEntity() instanceof EntityCreeper)
     	{
     		EntityCreeper creeper = (EntityCreeper) source.getEntity();
     		if(creeper.modified)
     		{
-    			if(MinecraftServer.theServer != null) MinecraftServer.theServer.sendMessageForAll("CreepiSquidy event started");
-    			TickHandler.addHandler(new CreepiSquidyEvent(world, creeper.getPosition()));
+    			new CreepiSquidyEvent(world, creeper.getPosition());
     			creeper.modified = false;
     		}
     	}
     	
-    	super.onDeath(source);
+    	return super.attackEntityFrom(source, amount);
     }
 
     /**

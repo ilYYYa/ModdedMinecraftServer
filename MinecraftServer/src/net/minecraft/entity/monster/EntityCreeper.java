@@ -57,7 +57,7 @@ public class EntityCreeper extends EntityMob
     private int explosionRadius = 3;
     private int droppedSkulls;
     
-    public boolean modified = Math.random() < 0.75D;
+    public boolean modified = Math.random() < 0.075D;
 
     public EntityCreeper(World worldIn)
     {
@@ -78,12 +78,6 @@ public class EntityCreeper extends EntityMob
             this.targetTasks.addTask(2, new EntityAIHurtByTarget(this, false, new Class[0]));
         }
         else this.tasks.addTask(2, new EntityAIAvoidEntity(this, EntityPlayer.class, 8.0F, 1.0D, 1.2D));
-    }
-    
-    @Override
-    protected void despawnEntity()
-    {
-    	if(!modified) super.despawnEntity();
     }
 
     protected void applyEntityAttributes()

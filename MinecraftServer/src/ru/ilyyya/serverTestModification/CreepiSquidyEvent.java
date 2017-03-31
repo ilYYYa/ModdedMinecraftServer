@@ -25,14 +25,21 @@ import net.minecraft.world.World;
 public class CreepiSquidyEvent implements EventHandler
 {
 	private World world;
-	private BlockPos pos;
+	
+	public BlockPos pos;
+	public int widthX = 0;
+	public int widthZ = 0;
+	public int height = 0;
+	public double diagonal = 0;
+	
 	private int stage = 0;
-	//private int eventTick = 0;
 	private int wave = 0;
 	private ArrayList<EntityPlayer> players = new ArrayList<EntityPlayer>();
 	private ArrayList<EntityMob> mobs = new ArrayList<EntityMob>();
 	private int trying = 0;
-	private int waiting = 500;
+	private int waiting = 600;
+	private int mobsAlivingBuff = 0;
+	private boolean run = true;
 
 	private int[][] waves =
 		{
@@ -88,7 +95,7 @@ public class CreepiSquidyEvent implements EventHandler
 			new ItemStack(Blocks.WEB, 3), // 16
 			new ItemStack(Items.APPLE), // 17
 			new ItemStack(Items.MILK_BUCKET), // 18
-			new ItemStack(Blocks.DIAMOND_ORE, 1, 2), // 19
+			new ItemStack(Blocks.DIAMOND_ORE), // 19
 			new ItemStack(Blocks.GOLD_ORE, 2), // 20
 			new ItemStack(Items.GOLDEN_APPLE), // 21
 			new ItemStack(Blocks.TNT, 2), // 22
@@ -106,38 +113,54 @@ public class CreepiSquidyEvent implements EventHandler
 		this.world = world;
 		this.pos = pos;
 		
-		for(int i = 0; i < world.playerEntities.size(); i++)
+		height = ilStructures.arena.length;
+		widthX = ilStructures.arena[0].length;
+		widthZ = ilStructures.arena[0][0].length();
+		
+		diagonal = Math.sqrt(height*height + widthX*widthX + widthZ*widthZ);
+		
+		
+		
+		for(int i = 0; i < TickHandler.handlers.size(); i++)
 		{
-			EntityPlayer pl = world.playerEntities.get(i);
-			if(pl.getDistanceSqToCenter(pos) < 40D && !pl.isCreative())
+			EventHandler eh = TickHandler.handlers.get(i);
+			if(eh instanceof CreepiSquidyEvent)
 			{
-				players.add(pl);
+				CreepiSquidyEvent cqe = (CreepiSquidyEvent)eh;
+				double r1 = cqe.pos.getX() - pos.getX();
+				double r2 = cqe.pos.getZ() - pos.getZ();
+				double r3 = cqe.pos.getY() - pos.getY();
+				double D = Math.sqrt(r1*r1 + r2*r2 + r3*r3);
+				if(D < diagonal) run = false;
 			}
 		}
-
-		MinecraftServer.theServer.sendMessageForAll("Players on event: " + players.size());
-	}
-	
-	@Override
-	public void onTickUpdate()
-	{
 		
+		if(run)
+		{
+			for(int i = 0; i < world.playerEntities.size(); i++)
+	 		{
+	 			EntityPlayer pl = world.playerEntities.get(i);
+				if(pl.getDistanceSqToCenter(pos) < 40D && !pl.isCreative())
+	 			{
+	 				players.add(pl);
+	 			}
+	 		}
+			
+			TickHandler.addHandler(this);
+
+			MinecraftServer.theServer.sendMessageForAll("CreepiSquidy event started");
+			MinecraftServer.theServer.sendMessageForAll("Players on event: " + players.size());
+		}
 	}
 	
 	private void CheckPlayersLiving()
 	{
-		for(int i = 0; i < players.size(); i++)
-		{
-			if(players.get(i).isDead) players.remove(i);
-		}
+		for(int i = 0; i < players.size(); i++) if(players.get(i).isDead || players.get(i).isSpectator()) players.remove(i);
 	}
 	
 	private void CheckMobsIsLiving()
 	{
-		for(int i = 0; i < mobs.size(); i++)
-		{
-			if(mobs.get(i).isDead) mobs.remove(i);
-		}
+		for(int i = 0; i < mobs.size(); i++) if(mobs.get(i).isDead) mobs.remove(i);
 	}
 	
 	private void CheckMobsInAndOut()
@@ -145,14 +168,8 @@ public class CreepiSquidyEvent implements EventHandler
 		for(int i = 0; i < mobs.size(); i++)
 		{
 			EntityMob entity = mobs.get(i);
-			
 			if(entity.isDead) mobs.remove(entity);
-			
-			if(!EntityIn(entity))
-			{
-				entity.setPosition(pos.getX()+0.5D, pos.getY() + 3, pos.getZ()+0.5D);
-				entity.fallDistance = 0F;
-			}
+			if(!EntityIn(entity)) getBackEntity(entity);
 		}
 	}
 	
@@ -160,7 +177,9 @@ public class CreepiSquidyEvent implements EventHandler
 	{
 		switch(id)
 		{
-			case 1: return new EntityZombie(world);
+			case 1: EntityZombie zombie = new EntityZombie(world);
+					zombie.modified = false;
+					return zombie;
 			case 2: return new EntitySkeleton(world);
 			case 3: EntitySkeleton sk = new EntitySkeleton(world);
 					sk.setItemStackToSlot(EntityEquipmentSlot.MAINHAND, new ItemStack(Items.BOW));
@@ -183,33 +202,24 @@ public class CreepiSquidyEvent implements EventHandler
 			
 			if(players.contains(pl))
 			{
-				boolean buff = !EntityIn(pl);
-				if(buff && trying <= 0)
-				{
-					pl.setPosition(pos.getX()+0.5D, pos.getY() + 3, pos.getZ()+0.5D);
-					pl.fallDistance = 0F;
-					trying = 5;
-				}
-				else if(buff && trying > 0)
-				{
-					trying--;
-				}
-				else
-				{
-					trying = 10;
-				}
+				if(!EntityIn(pl)) getBackEntity(pl);
 			}
 			else
 			{
-				if(EntityIn(pl) && pl.onGround)
-				{
-					pl.attackEntityFrom(DamageSource.fall, 1F);
-					pl.onGround = false;
-					pl.motionX = pl.posX - pos.getX();
-					pl.motionY = 1D;
-					pl.motionZ = pl.posZ - pos.getZ();
-				}
+				if(EntityIn(pl) && !pl.isCreative() && !pl.isSpectator()) PunchEntity(pl);
 			}
+		}
+	}
+	
+	private void PunchEntity(Entity entity)
+	{
+		if(entity.onGround)
+		{
+			entity.attackEntityFrom(DamageSource.fall, 1F);
+			entity.onGround = false;
+			entity.motionX = entity.posX - pos.getX();
+			entity.motionY = 1D;
+			entity.motionZ = entity.posZ - pos.getZ();
 		}
 	}
 	
@@ -247,6 +257,38 @@ public class CreepiSquidyEvent implements EventHandler
 		return -1;
 	}
 	
+	private void getBackEntity(Entity entity)
+	{
+		if(trying <= 0)
+		{
+			entity.setPosition(pos.getX()+0.5D, pos.getY() + 3, pos.getZ()+0.5D);
+			entity.fallDistance = 0F;
+			trying = 10;
+		}
+		else if(trying > 0)
+		{
+			trying--;
+		}
+	}
+	
+	private void CheckWaterInArena()
+	{
+		for(int iy = 0; iy < ilStructures.arena.length; iy++)
+		{
+			for(int ix = 0; ix < ilStructures.arena[iy].length; ix++)
+			{
+				for(int iz = 0; iz < ilStructures.arena[iy][ix].length(); iz++)
+				{
+					BlockPos posBuff = pos.add(ix - ilStructures.arena[iy].length/2, iy, iz - ilStructures.arena[iy][ix].length()/2);
+					if(world.getBlockState(posBuff).getBlock() == Blocks.WATER || world.getBlockState(posBuff).getBlock() == Blocks.FLOWING_WATER)
+					{
+						world.setBlockState(posBuff, Blocks.AIR.getDefaultState());
+					}
+				}
+			}
+		}
+	}
+	
 	private IBlockState getBlockByStringNum(String str)
 	{
 		int n = Integer.parseInt(str);
@@ -263,14 +305,86 @@ public class CreepiSquidyEvent implements EventHandler
 		return null;
 	}
 	
-	@Override
-	public void onTickUpdateEnd()
+	private void CheckPlayersOnWaitionPlace()
 	{
-		
+		for(int i = 0; i < players.size(); i++)
+		{
+			if((int)players.get(i).posX != (int)(pos.getX()+0.5D) || (int)players.get(i).posZ != (int)(pos.getZ()+0.5D))
+			{
+				getBackEntity(players.get(i));
+			}
+		}
+	}
+
+	private void SpawnPrizeInWorld()
+	{
+		MinecraftServer.theServer.sendMessageForAll("Good Job!! Take a prize. " + ((720 + wave * 45)/60) + " seconds for battle");
+		for(int i = 0; i < wave; i++)
+		{
+			EntityItem item = new EntityItem(world, pos.getX() + 0.5D, pos.getY() + 4, pos.getZ() + 0.5D, prizes[i]);
+        	world.spawnEntityInWorld(item);
+		}
 	}
 	
-	int last = 0;
-
+	private void SpawnEntityInWorldPerWave(int wave)
+	{
+		for(int i = 0; i < waves[wave].length; i++)
+		{
+			EntityMob mob = getSpawningEntity(waves[wave][i]);
+			switch(i%5)
+			{
+				case 0:	mob.setPosition(
+						pos.getX() + 0.5D - 6D,
+						pos.getY() + 3,
+						pos.getZ() + 0.5D - 6D);
+						break;
+				case 1: mob.setPosition(
+						pos.getX() + 0.5D + 6D,
+						pos.getY() + 3,
+						pos.getZ() + 0.5D - 6D);
+						break;
+				case 2: mob.setPosition(
+						pos.getX() + 0.5D - 6D,
+						pos.getY() + 3,
+						pos.getZ() + 0.5D + 6D);
+						break;
+				case 3: mob.setPosition(
+						pos.getX() + 0.5D + 6D,
+						pos.getY() + 3,
+						pos.getZ() + 0.5D + 6D);
+						break;
+				case 4: mob.setPosition(
+						pos.getX() + 0.5D,
+						pos.getY() + 3D,
+						pos.getZ() + 0.5D);
+						break;
+			}
+			world.spawnEntityInWorld(mob);
+			mobs.add(mob);
+		}
+	}
+	
+	private void CreateFinalPrize()
+	{
+		for(int i = 0; i < prizes.length; i++)
+		{
+			EntityItem item = new EntityItem(world, pos.getX() + 0.5D, pos.getY() + 4, pos.getZ() + 0.5D, prizes[i]);
+        	world.spawnEntityInWorld(item);
+		}
+		world.setBlockState(pos.south(2).west().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(2));
+		world.setBlockState(pos.south(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(2));
+		world.setBlockState(pos.south(2).east().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(2));
+		world.setBlockState(pos.north(2).west().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(0));
+		world.setBlockState(pos.north(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(0));
+		world.setBlockState(pos.north(2).east().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(0));
+		world.setBlockState(pos.west(2).south().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(3));
+		world.setBlockState(pos.west(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(3));
+		world.setBlockState(pos.west(2).north().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(3));
+		world.setBlockState(pos.east(2).south().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(1));
+		world.setBlockState(pos.east(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(1));
+		world.setBlockState(pos.east(2).north().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(1));
+	}
+	
 	@Override
 	public void onEnemysUpdate()
 	{
@@ -287,18 +401,9 @@ public class CreepiSquidyEvent implements EventHandler
 		}
 		else if(stage == 0)
 		{
+			CheckWaterInArena();
 			int iy = CheckAndCreatePlace();
-			if(iy >= 0)
-			{
-				for(int i = 0; i < players.size(); i++)
-				{
-					if((int)players.get(i).posX != (int)(pos.getX()+0.5D) || (int)players.get(i).posY != (int)(pos.getY()+0.5D))
-					{
-						players.get(i).setPosition(pos.getX()+0.5D, pos.getY() + 3, pos.getZ()+0.5D);
-						players.get(i).fallDistance = 0F;
-					}
-				}
-			}
+			if(iy >= 0) CheckPlayersOnWaitionPlace();
 			else stage = 1;
 		}
 		else if(stage == 1)
@@ -308,15 +413,8 @@ public class CreepiSquidyEvent implements EventHandler
 			{
 				if(mobs.size() == 0)
 				{
-					if(waiting == 720 + wave * 45)
-					{
-						MinecraftServer.theServer.sendMessageForAll("Good Job!! Take a prize. " + ((720 + wave * 45)/60) + " seconds for battle");
-						for(int i = 0; i < wave; i++)
-						{
-							EntityItem item = new EntityItem(world, pos.getX() + 0.5D, pos.getY() + 4, pos.getZ() + 0.5D, prizes[i]);
-				        	world.spawnEntityInWorld(item);
-						}
-					}
+					if(waiting == 720 + wave * 45) SpawnPrizeInWorld();
+					
 					switch(waiting)
 					{
 						case 599: 
@@ -331,54 +429,18 @@ public class CreepiSquidyEvent implements EventHandler
 					
 					if(waiting <= 0)
 					{
-						for(int i = 0; i < waves[wave].length; i++)
-						{
-							EntityMob mob = getSpawningEntity(waves[wave][i]);
-							switch(i%5)
-							{
-								case 0:	mob.setPosition(
-										pos.getX() + 0.5D - 6D,
-										pos.getY() + 3,
-										pos.getZ() + 0.5D - 6D);
-										break;
-								case 1: mob.setPosition(
-										pos.getX() + 0.5D + 6D,
-										pos.getY() + 3,
-										pos.getZ() + 0.5D - 6D);
-										break;
-								case 2: mob.setPosition(
-										pos.getX() + 0.5D - 6D,
-										pos.getY() + 3,
-										pos.getZ() + 0.5D + 6D);
-										break;
-								case 3: mob.setPosition(
-										pos.getX() + 0.5D + 6D,
-										pos.getY() + 3,
-										pos.getZ() + 0.5D + 6D);
-										break;
-								case 4: mob.setPosition(
-										pos.getX() + 0.5D,
-										pos.getY() + 3D,
-										pos.getZ() + 0.5D);
-										break;
-							}
-							world.spawnEntityInWorld(mob);
-							mobs.add(mob);
-						}
+						SpawnEntityInWorldPerWave(wave);
 						wave++;
 						waiting = 760 + wave * 45;
 					}
-					else
-					{
-						waiting--;
-					}
+					else waiting--;
 				}
 				else
 				{
-					if(last != mobs.size())
+					if(mobsAlivingBuff != mobs.size())
 					{
 						MinecraftServer.theServer.sendMessageForAll("" + mobs.size() + " mobs you need kill to took next wave");
-						last = mobs.size();
+						mobsAlivingBuff = mobs.size();
 					}
 				}
 			}
@@ -387,27 +449,25 @@ public class CreepiSquidyEvent implements EventHandler
 				MinecraftServer.theServer.sendMessageForAll("WELL PLAYED!");
 				MinecraftServer.theServer.sendMessageForAll("You passed this event");
 				MinecraftServer.theServer.sendMessageForAll("Take your prizes...");
-				for(int i = 0; i < prizes.length; i++)
-				{
-					EntityItem item = new EntityItem(world, pos.getX() + 0.5D, pos.getY() + 4, pos.getZ() + 0.5D, prizes[i]);
-		        	world.spawnEntityInWorld(item);
-				}
 				MinecraftServer.theServer.sendMessageForAll("and this structure ;)");
-				world.setBlockState(pos.south(2).west().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(2));
-				world.setBlockState(pos.south(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(2));
-				world.setBlockState(pos.south(2).east().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(2));
-				world.setBlockState(pos.north(2).west().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(0));
-				world.setBlockState(pos.north(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(0));
-				world.setBlockState(pos.north(2).east().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(0));
-				world.setBlockState(pos.west(2).south().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(3));
-				world.setBlockState(pos.west(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(3));
-				world.setBlockState(pos.west(2).north().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(3));
-				world.setBlockState(pos.east(2).south().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(1));
-				world.setBlockState(pos.east(2).up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(1));
-				world.setBlockState(pos.east(2).north().up(), Blocks.END_PORTAL_FRAME.getStateFromMeta(1));
+				
+				CreateFinalPrize();
+				
 				TickHandler.removeHandler(this);
 			}
 		}
+	}
+	
+	@Override
+	public void onTickUpdateEnd()
+	{
+		
+	}
+	
+	@Override
+	public void onTickUpdate()
+	{
+		
 	}
 
 	@Override
