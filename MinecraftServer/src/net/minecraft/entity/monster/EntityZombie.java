@@ -561,6 +561,7 @@ public class EntityZombie extends EntityMob
         }
 
         compound.setBoolean("CanBreakDoors", this.isBreakDoorsTaskSet());
+        compound.setBoolean("Modified", this.modified);
     }
 
     /**
@@ -576,6 +577,7 @@ public class EntityZombie extends EntityMob
         }
 
         this.setBreakDoorsAItask(compound.getBoolean("CanBreakDoors"));
+        this.modified = compound.getBoolean("Modified");
     }
 
     /**

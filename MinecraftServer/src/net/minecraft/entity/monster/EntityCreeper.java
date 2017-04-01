@@ -133,6 +133,7 @@ public class EntityCreeper extends EntityMob
         compound.setShort("Fuse", (short)this.fuseTime);
         compound.setByte("ExplosionRadius", (byte)this.explosionRadius);
         compound.setBoolean("ignited", this.hasIgnited());
+        compound.setBoolean("Modified", this.modified);
     }
 
     /**
@@ -157,6 +158,8 @@ public class EntityCreeper extends EntityMob
         {
             this.ignite();
         }
+        
+        this.modified = compound.getBoolean("Modified");
     }
 
     /**

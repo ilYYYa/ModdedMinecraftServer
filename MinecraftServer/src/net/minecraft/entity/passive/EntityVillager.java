@@ -2,7 +2,12 @@ package net.minecraft.entity.passive;
 
 import java.util.Locale;
 import java.util.Random;
+
 import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -84,8 +89,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.storage.MapData;
 import net.minecraft.world.storage.MapDecoration;
 import net.minecraft.world.storage.loot.LootTableList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import ru.ilyyya.serverTestModification.VillagerTasks.MoveAwayFromTheVillage;
 
 public class EntityVillager extends EntityAgeable implements INpc, IMerchant
 {
@@ -94,7 +98,7 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
     private int randomTickDivider;
     private boolean isMating;
     private boolean isPlaying;
-    Village villageObj;
+    public Village villageObj;
 
     /** This villager's current customer. */
     private EntityPlayer buyingPlayer;
@@ -151,6 +155,7 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
         this.tasks.addTask(2, new EntityAIMoveIndoors(this));
         this.tasks.addTask(3, new EntityAIRestrictOpenDoor(this));
         this.tasks.addTask(4, new EntityAIOpenDoor(this, true));
+        //this.tasks.addTask(5, new MoveAwayFromTheVillage(this)); // modified
         this.tasks.addTask(5, new EntityAIMoveTowardsRestriction(this, 0.6D));
         this.tasks.addTask(6, new EntityAIVillagerMate(this));
         this.tasks.addTask(7, new EntityAIFollowGolem(this));
@@ -187,6 +192,9 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
         {
             this.tasks.addTask(8, new EntityAIHarvestFarmland(this, 0.6D));
         }
+
+        getVillagerInventory().addItem(new ItemStack(Blocks.DIRT, (int)(Math.random() * 32)));
+        getVillagerInventory().addItem(new ItemStack(Blocks.COBBLESTONE, (int)(Math.random() * 32)));
 
         super.onGrowingAdult();
     }
@@ -518,6 +526,13 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
         }
 
         super.onDeath(cause);
+        for(int i = 0; i < this.getVillagerInventory().getSizeInventory(); i++)
+        {
+        	if(this.getVillagerInventory().getStackInSlot(i) != ItemStack.field_190927_a)
+        	{
+        		world.spawnEntityInWorld(new EntityItem(world, this.posX, this.posY + 1, this.posZ, this.getVillagerInventory().getStackInSlot(i)));
+        	}
+        }
     }
 
     public void setCustomer(EntityPlayer player)

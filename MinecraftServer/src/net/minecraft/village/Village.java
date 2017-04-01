@@ -1,15 +1,20 @@
 package net.minecraft.village;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.mojang.authlib.GameProfile;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import javax.annotation.Nullable;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.mojang.authlib.GameProfile;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
+import net.minecraft.block.BlockPane;
+import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
@@ -18,6 +23,7 @@ import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerProfileCache;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -25,6 +31,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import ru.ilyyya.serverTestModification.ilStructures;
 
 public class Village
 {
@@ -39,7 +46,7 @@ public class Village
 
     /** This is the actual village center. */
     private BlockPos center = BlockPos.ORIGIN;
-    private int villageRadius;
+    public int villageRadius;
     private int lastAddDoorTimestamp;
     private int tickCounter;
     private int numVillagers;
@@ -64,6 +71,119 @@ public class Village
         this.worldObj = worldIn;
     }
 
+    public void getHouseByDoorInfo(VillageDoorInfo di)
+    {
+    	BlockPos pos = di.getDoorBlockPos();
+    }
+    
+    public void checkAllDoors()
+    {
+    	for(int i = 0; i < villageDoorInfoList.size(); i++)
+    	{
+    		double[] buff = checkAllStructuresForDoor(villageDoorInfoList.get(i).getDoorBlockPos());
+    		MinecraftServer.theServer.sendMessageForAll("Door at " + villageDoorInfoList.get(i).getDoorBlockPos().toString() + " with structure N" + buff[3] + " have " + buff[0] + "% with " + buff[1] + " facing and " + (buff[2] != 0) + " mirror");
+    	}
+    }
+    
+    public double[] checkAllStructuresForDoor(BlockPos doorPos)
+    {
+    	double pc = 0D;
+    	double buff = 0D;
+    	
+    	double fc = 0D;
+    	double mr = 0D;
+    	double index = 0D;
+    	
+    	for(int i = 0; i < ilStructures.Houses.length; i++)
+    	{
+    		for(int j = 0; j < 8; j++)
+    		{
+        		buff = checkStructureByFacingAndMirroring(ilStructures.Houses[i], findDoorInStructure(ilStructures.Houses[i]), doorPos, j%4, (int) (j/4) != 0);
+        		if(buff > pc)
+        		{
+        			pc = buff;
+        			fc = j%4;
+        			mr = (int) (j/4);
+        			index = i;
+        		}
+    		}
+    	}
+    	
+    	return new double[] { pc, fc, mr, index };
+    }
+
+    public int[] findDoorInStructure(int[][][] structure)
+    {
+    	for(int iy = 0; iy < structure.length; iy++)
+    	{
+    		for(int ix = 0; ix < structure[iy].length; ix++)
+        	{
+    			for(int iz = 0; iz < structure[iy][ix].length; iz++)
+            	{
+            		if(structure[iy][ix][iz] == 3) return new int[] {ix, iy, iz};
+            	}
+        	}
+    	}
+    	return null;
+    }
+    
+    public double checkStructureByFacingAndMirroring(int[][][] structure, int[] doorCoords, BlockPos doorPos, int facing, boolean mirror)
+    {
+    	int trys = 0;
+    	int trues = 0;
+    	
+		BlockPos pos = null;
+		if(facing == 0 && !mirror) pos = doorPos.down(doorCoords[1]).west(doorCoords[0]).north(doorCoords[2]);
+		if(facing == 1 && !mirror) pos = doorPos.down(doorCoords[1]).north(doorCoords[0]).east(doorCoords[2]);
+		if(facing == 2 && !mirror) pos = doorPos.down(doorCoords[1]).east(doorCoords[0]).south(doorCoords[2]);
+		if(facing == 3 && !mirror) pos = doorPos.down(doorCoords[1]).south(doorCoords[0]).west(doorCoords[2]);
+		
+		if(facing == 0 && mirror) pos = doorPos.down(doorCoords[1]).west(doorCoords[0]).south(doorCoords[2]);
+		if(facing == 1 && mirror) pos = doorPos.down(doorCoords[1]).north(doorCoords[0]).west(doorCoords[2]);
+		if(facing == 2 && mirror) pos = doorPos.down(doorCoords[1]).east(doorCoords[0]).north(doorCoords[2]);
+		if(facing == 3 && mirror) pos = doorPos.down(doorCoords[1]).south(doorCoords[0]).east(doorCoords[2]);
+		
+    	if(doorCoords == null || pos == null) return 0;
+    	
+    	for(int iy = 0; iy < structure.length; iy++)
+    	{
+    		for(int ix = 0; ix < structure[iy].length; ix++)
+        	{
+    			for(int iz = 0; iz < structure[iy][ix].length; iz++)
+            	{
+    				trys++;
+
+    				if(facing == 0 && !mirror && checkBlockPosAndBlockId(pos.up(iy).east(ix).south(iz), structure[iy][ix][iz])) trues++;
+    				if(facing == 1 && !mirror && checkBlockPosAndBlockId(pos.up(iy).south(ix).west(iz), structure[iy][ix][iz])) trues++;
+    				if(facing == 2 && !mirror && checkBlockPosAndBlockId(pos.up(iy).west(ix).north(iz), structure[iy][ix][iz])) trues++;
+    				if(facing == 3 && !mirror && checkBlockPosAndBlockId(pos.up(iy).north(ix).east(iz), structure[iy][ix][iz])) trues++;
+    				
+    				if(facing == 0 && mirror && checkBlockPosAndBlockId(pos.up(iy).east(ix).north(iz), structure[iy][ix][iz])) trues++;
+    				if(facing == 1 && mirror && checkBlockPosAndBlockId(pos.up(iy).south(ix).east(iz), structure[iy][ix][iz])) trues++;
+    				if(facing == 2 && mirror && checkBlockPosAndBlockId(pos.up(iy).west(ix).south(iz), structure[iy][ix][iz])) trues++;
+    				if(facing == 3 && mirror && checkBlockPosAndBlockId(pos.up(iy).north(ix).west(iz), structure[iy][ix][iz])) trues++;
+            	}
+        	}
+    	}
+    	
+    	return trues/trys;
+    }
+    
+    public boolean checkBlockPosAndBlockId(BlockPos pos, int id)
+    {
+    	boolean ret = false;
+    	if(id == 0) ret = true;
+    	if(id == 1 && worldObj.getBlockState(pos).isFullBlock() && worldObj.getBlockState(pos).isFullCube()	 && !worldObj.getBlockState(pos).isOpaqueCube()) ret = true;
+    	if(id == 3 && worldObj.getBlockState(pos).getBlock() instanceof BlockDoor) ret = true;
+    	if(id == 5 && worldObj.getBlockState(pos).getBlock() instanceof BlockStairs) ret = true;
+    	if(id == 6 && worldObj.getBlockState(pos).getBlock() instanceof BlockPane) ret = true;
+    	
+    	if(ret) System.out.println(pos.toString() + " id{" + id + "}");
+    	
+    	return ret;
+    }
+    
+    int z = 0;
     /**
      * Called periodically by VillageCollection
      */
@@ -96,6 +216,13 @@ public class Village
                 this.worldObj.spawnEntityInWorld(entityirongolem);
                 ++this.numIronGolems;
             }
+        }
+
+        if (tickCounterIn % 120 == 0 && z < 1)
+        {
+        	MinecraftServer.theServer.sendMessageForAll("Doors in village count: " + villageDoorInfoList.size());
+        	checkAllDoors();
+        	z++;
         }
     }
 

@@ -1,0 +1,67 @@
+---- Minecraft Crash Report ----
+// My bad.
+
+Time: 01.04.17 14:40
+Description: Exception ticking world
+
+java.lang.ArrayIndexOutOfBoundsException: 4
+	at net.minecraft.village.Village.findDoorInStructure(Village.java:123)
+	at net.minecraft.village.Village.checkAllStructures(Village.java:101)
+	at net.minecraft.village.Village.checkAllDoors(Village.java:83)
+	at net.minecraft.village.Village.tick(Village.java:223)
+	at net.minecraft.village.VillageCollection.tick(VillageCollection.java:69)
+	at net.minecraft.world.WorldServer.tick(WorldServer.java:226)
+	at net.minecraft.server.MinecraftServer.updateTimeLightAndEntities(MinecraftServer.java:795)
+	at net.minecraft.server.dedicated.DedicatedServer.updateTimeLightAndEntities(DedicatedServer.java:393)
+	at net.minecraft.server.MinecraftServer.tick(MinecraftServer.java:713)
+	at net.minecraft.server.MinecraftServer.run(MinecraftServer.java:584)
+	at java.lang.Thread.run(Unknown Source)
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- Head --
+Thread: Server thread
+Stacktrace:
+	at net.minecraft.village.Village.findDoorInStructure(Village.java:123)
+	at net.minecraft.village.Village.checkAllStructures(Village.java:101)
+	at net.minecraft.village.Village.checkAllDoors(Village.java:83)
+	at net.minecraft.village.Village.tick(Village.java:223)
+	at net.minecraft.village.VillageCollection.tick(VillageCollection.java:69)
+	at net.minecraft.world.WorldServer.tick(WorldServer.java:226)
+
+-- Affected level --
+Details:
+	Level name: testingworld
+	All players: 1 total; [EntityPlayerMP['ilYYYa777'/281, l='testingworld', x=551,78, y=79,79, z=-1788,18]]
+	Chunk stats: ServerChunkCache: 644 Drop: 0
+	Level seed: -2245828288484857598
+	Level generator: ID 00 - default, ver 1. Features enabled: true
+	Level generator options: 
+	Level spawn location: World: (565,10,-1717), Chunk: (at 5,0,11 in 35,-108; contains blocks 560,0,-1728 to 575,255,-1713), Region: (1,-4; contains chunks 32,-128 to 63,-97, blocks 512,0,-2048 to 1023,255,-1537)
+	Level time: 111739 game time, 7931 day time
+	Level dimension: 0
+	Level storage version: 0x04ABD - Anvil
+	Level weather: Rain time: 51133 (now: false), thunder time: 26536 (now: false)
+	Level game mode: Game mode: survival (ID 0). Hardcore: false. Cheats: false
+Stacktrace:
+	at net.minecraft.server.MinecraftServer.updateTimeLightAndEntities(MinecraftServer.java:795)
+	at net.minecraft.server.dedicated.DedicatedServer.updateTimeLightAndEntities(DedicatedServer.java:393)
+	at net.minecraft.server.MinecraftServer.tick(MinecraftServer.java:713)
+	at net.minecraft.server.MinecraftServer.run(MinecraftServer.java:584)
+	at java.lang.Thread.run(Unknown Source)
+
+-- System Details --
+Details:
+	Minecraft Version: 1.11.2
+	Operating System: Windows 10 (amd64) version 10.0
+	Java Version: 1.8.0_91, Oracle Corporation
+	Java VM Version: Java HotSpot(TM) 64-Bit Server VM (mixed mode), Oracle Corporation
+	Memory: 355438352 bytes (338 MB) / 434634752 bytes (414 MB) up to 1877475328 bytes (1790 MB)
+	JVM Flags: 0 total; 
+	IntCache: cache: 0, tcache: 0, allocated: 12, tallocated: 94
+	Profiler Position: N/A (disabled)
+	Player Count: 1 / 10; [EntityPlayerMP['ilYYYa777'/281, l='testingworld', x=551,78, y=79,79, z=-1788,18]]
+	Is Modded: Unknown (can't tell)
+	Type: Dedicated Server (map_server.txt)
