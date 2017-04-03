@@ -21,9 +21,13 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.monster.EntityIronGolem;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemDoor;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerProfileCache;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -32,11 +36,16 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import ru.ilyyya.serverTestModification.ilStructures;
+import ru.ilyyya.serverTestModification.VillagerTasks.BlockForRepair;
+import ru.ilyyya.serverTestModification.VillagerTasks.VillageStructure;
 
 public class Village
 {
     private World worldObj;
     private final List<VillageDoorInfo> villageDoorInfoList = Lists.<VillageDoorInfo>newArrayList();
+    
+    public List<VillageStructure> VillageStructures = Lists.<VillageStructure>newArrayList();
+    private int StructureIndexForUpdateHouse = 0;
 
     /**
      * This is the sum of all door coordinates and used to calculate the actual village center by dividing by the number
@@ -56,7 +65,7 @@ public class Village
     private final Map<String, Integer> playerReputation = Maps.<String, Integer>newHashMap();
     private final List<Village.VillageAggressor> villageAgressors = Lists.<Village.VillageAggressor>newArrayList();
     private int numIronGolems;
-
+    
     public Village()
     {
     }
@@ -70,80 +79,197 @@ public class Village
     {
         this.worldObj = worldIn;
     }
-
-    public void getHouseByDoorInfo(VillageDoorInfo di)
-    {
-    	BlockPos pos = di.getDoorBlockPos();
-    }
     
-    public void checkAllDoors()
+    public int checkCrossesHouses()
     {
-    	for(int i = 0; i < villageDoorInfoList.size(); i++)
+    	int ret = -1;
+    	for(int i = 0; i < this.VillageStructures.size(); i++)
     	{
-    		double[] buff = checkAllStructuresForDoor(villageDoorInfoList.get(i).getDoorBlockPos());
-    		MinecraftServer.theServer.sendMessageForAll("Door at " + villageDoorInfoList.get(i).getDoorBlockPos().toString() + " with structure N" + buff[3] + " have " + buff[0] + "% with " + buff[1] + " facing and " + (buff[2] != 0) + " mirror");
+    		ret = checkCrosseHouse(i);
+    		if(ret != -1) return ret;
     	}
+    	return ret;
     }
     
-    public double[] checkAllStructuresForDoor(BlockPos doorPos)
+    public int checkCrosseHouse(int index)
     {
-    	double pc = 0D;
-    	double buff = 0D;
-    	
-    	double fc = 0D;
-    	double mr = 0D;
-    	double index = 0D;
-    	
-    	for(int i = 0; i < ilStructures.Houses.length; i++)
+		VillageStructure f = VillageStructures.get(index);
+		for(int j = 0; j < this.VillageStructures.size(); j++)
     	{
-    		for(int j = 0; j < 8; j++)
+    		VillageStructure s = VillageStructures.get(j);
+    		if(f != s && !f.toString().equals(s.toString()) && 
+    				((f.posX1 < s.posX1 && s.posX1 < f.posX2) || (f.posX1 < s.posX2 && s.posX2 < f.posX2)) && ((f.posZ1 < s.posZ1 && s.posZ1 < f.posZ2) || (f.posZ1 < s.posZ2 && s.posZ2 < f.posZ2)))
     		{
-        		buff = checkStructureByFacingAndMirroring(ilStructures.Houses[i], findDoorInStructure(ilStructures.Houses[i]), doorPos, j%4, (int) (j/4) != 0);
-        		if(buff > pc)
-        		{
-        			pc = buff;
-        			fc = j%4;
-        			mr = (int) (j/4);
-        			index = i;
-        		}
+    			if(f.percent < s.percent) return index;
+    			else return j;
+    		}
+    	}
+		return -1;
+    }
+    
+    public VillageStructure getDamagedHouse()
+    {
+    	List<VillageStructure> vss = Lists.<VillageStructure>newArrayList();
+    	for(int i = 0; i < this.VillageStructures.size(); i++)
+    	{
+    		VillageStructure vs = VillageStructures.get(i);
+    		if(vs.percent < 1.0D && checkCrosseHouse(i) != i)
+    		{
+    			vss.add(vs);
     		}
     	}
     	
-    	return new double[] { pc, fc, mr, index };
+    	return vss == null ? null : vss.size() <= 0 ? null : vss.get((int)(Math.random() * (double)vss.size()));
+    }
+    int z = 0;
+    public void updateHouse(int index)
+    {
+    	if(index < this.getVillageDoorInfoList().size())
+    	{
+    		if(index >= this.VillageStructures.size())
+    		{
+    			for(int i = 0; i < index - this.VillageStructures.size() + 1; i++)
+    			{
+    				this.VillageStructures.add(null);
+    			}
+    		}
+    		
+    		if(VillageStructures.get(index) == null)
+    		{
+        		this.VillageStructures.set(index, findOptimalStructureForThisDoor(this.getVillageDoorInfoList().get(index).getDoorBlockPos()));
+    		}
+    	}
+    	
+
+		if(VillageStructures.get(index) != null)
+		{
+			this.VillageStructures.get(index).checkStructure(worldObj);
+		}
+		
+		int removableHouse = checkCrossesHouses();
+		if(removableHouse >= 0) this.VillageStructures.remove(removableHouse);
+    }
+    
+    public boolean repairThisBlock(BlockForRepair block, EntityVillager villager)
+    {
+    	for(int i = 0; i < villager.getVillagerInventory().getSizeInventory(); i++)
+    	{
+    		ItemStack is = villager.getVillagerInventory().getStackInSlot(i);
+    		Block bl = Block.getBlockById(Item.getIdFromItem(is.getItem()));
+    		if(is != ItemStack.field_190927_a && bl != Blocks.AIR || is.getItem() instanceof ItemDoor);
+    		{
+    			if(checkItemFromItemStackAndBlockID(is, block.blockId) && is.stackSize > 0 && !checkBlockPosAndBlockId(worldObj, block.blockPos, block.blockId))
+    			{
+    				if(block.blockId == 3)
+    				{
+        				if(villager.world.getBlockState(block.blockPos) != Blocks.AIR.getDefaultState()) villager.world.destroyBlock(block.blockPos, true);
+        				if(villager.world.getBlockState(block.blockPos.up()) != Blocks.AIR.getDefaultState()) villager.world.destroyBlock(block.blockPos, true);
+        				worldObj.setBlockState(block.blockPos, Blocks.OAK_DOOR.getDefaultState().withProperty(BlockDoor.HALF, BlockDoor.EnumDoorHalf.LOWER), 2);
+        				worldObj.setBlockState(block.blockPos.up(), Blocks.OAK_DOOR.getDefaultState().withProperty(BlockDoor.HALF, BlockDoor.EnumDoorHalf.UPPER), 2);
+    				}
+    				else
+    				{
+        				if(villager.world.getBlockState(block.blockPos) != Blocks.AIR.getDefaultState()) villager.world.destroyBlock(block.blockPos, true);
+        				villager.world.setBlockState(block.blockPos, bl.getStateFromMeta(block.meta));
+    				}
+    				is.stackSize--;
+    				return true;
+    			}
+    		}
+    	}
+    	return false;
+    }
+    
+    public boolean canThisVillagerRepairThisBlock(BlockForRepair block, EntityVillager villager)
+    {
+    	boolean ret = false;
+    	
+    	for(int i = 0; i < villager.getVillagerInventory().getSizeInventory(); i++)
+    	{
+    		if(checkItemFromItemStackAndBlockID(villager.getVillagerInventory().getStackInSlot(i), block.blockId)) ret = true;
+    	}
+    	return ret;
     }
 
-    public int[] findDoorInStructure(int[][][] structure)
+    public VillageStructure findOptimalStructureForThisDoor(BlockPos doorPos)
     {
+    	double best = 0.0D;
+    	VillageStructure structure = null;
+    	int[][] doors;
+    	double buff;
+
+    	for(int i = 0; i < ilStructures.Houses.length; i++)
+    	{
+			doors = findDoorsInStructure(ilStructures.Houses[i]);
+    		for(int j = 0; j < 8; j++)
+    		{
+    			for(int d = 0; d < doors.length; d++)
+    			{
+            		buff = getPercentForDoorByFacingAndMirroring(ilStructures.Houses[i], doors[d], doorPos, j%4, (int) (j/4) != 0);
+            		if(buff > best)
+            		{
+            			best = buff;
+            			structure = new VillageStructure(doorPos, j%4, (int) (j/4) != 0, 0, i, doors[d]);
+            			structure.percent = buff;
+            		}
+    			}
+    		}
+    	}
+    	
+    	return structure;
+    }
+
+    public int[][] findDoorsInStructure(int[][][] structure)
+    {
+    	int num = 0;
     	for(int iy = 0; iy < structure.length; iy++)
     	{
     		for(int ix = 0; ix < structure[iy].length; ix++)
         	{
     			for(int iz = 0; iz < structure[iy][ix].length; iz++)
             	{
-            		if(structure[iy][ix][iz] == 3) return new int[] {ix, iy, iz};
+            		if(structure[iy][ix][iz] == 3) num++;
             	}
         	}
     	}
-    	return null;
+    	
+    	int[][] ret = new int[num][];
+    	num = 0;
+    	for(int iy = 0; iy < structure.length; iy++)
+    	{
+    		for(int ix = 0; ix < structure[iy].length; ix++)
+        	{
+    			for(int iz = 0; iz < structure[iy][ix].length; iz++)
+            	{
+            		if(structure[iy][ix][iz] == 3)
+            		{
+            			ret[num] = new int[]{ix,iy,iz};
+            			num++;
+            		}
+            	}
+        	}
+    	}
+    	return ret;
     }
     
-    public double checkStructureByFacingAndMirroring(int[][][] structure, int[] doorCoords, BlockPos doorPos, int facing, boolean mirror)
+    public double getPercentForDoorByFacingAndMirroring(int[][][] structure, int[] doorCoords, BlockPos doorPos, int facing, boolean mirror)
     {
-    	int trys = 0;
-    	int trues = 0;
+    	double trys = 0.0D;
+    	double trues = 0.0D;
     	
 		BlockPos pos = null;
-		if(facing == 0 && !mirror) pos = doorPos.down(doorCoords[1]).west(doorCoords[0]).north(doorCoords[2]);
-		if(facing == 1 && !mirror) pos = doorPos.down(doorCoords[1]).north(doorCoords[0]).east(doorCoords[2]);
+		BlockPos buffPos = null;
+		if(facing == 0 && !mirror) pos = doorPos.down(doorCoords[1]).west(doorCoords[0]).north(doorCoords[2]);//east = x++; west = x--; south = z++; north = z--; 	
+		if(facing == 1 && !mirror) pos = doorPos.down(doorCoords[1]).south(doorCoords[0]).west(doorCoords[2]);
 		if(facing == 2 && !mirror) pos = doorPos.down(doorCoords[1]).east(doorCoords[0]).south(doorCoords[2]);
-		if(facing == 3 && !mirror) pos = doorPos.down(doorCoords[1]).south(doorCoords[0]).west(doorCoords[2]);
+		if(facing == 3 && !mirror) pos = doorPos.down(doorCoords[1]).north(doorCoords[0]).east(doorCoords[2]);
 		
 		if(facing == 0 && mirror) pos = doorPos.down(doorCoords[1]).west(doorCoords[0]).south(doorCoords[2]);
-		if(facing == 1 && mirror) pos = doorPos.down(doorCoords[1]).north(doorCoords[0]).west(doorCoords[2]);
+		if(facing == 1 && mirror) pos = doorPos.down(doorCoords[1]).south(doorCoords[0]).east(doorCoords[2]);
 		if(facing == 2 && mirror) pos = doorPos.down(doorCoords[1]).east(doorCoords[0]).north(doorCoords[2]);
-		if(facing == 3 && mirror) pos = doorPos.down(doorCoords[1]).south(doorCoords[0]).east(doorCoords[2]);
+		if(facing == 3 && mirror) pos = doorPos.down(doorCoords[1]).north(doorCoords[0]).west(doorCoords[2]);
 		
-    	if(doorCoords == null || pos == null) return 0;
+    	if(doorCoords == null || pos == null) return 0.0D;
     	
     	for(int iy = 0; iy < structure.length; iy++)
     	{
@@ -152,16 +278,18 @@ public class Village
     			for(int iz = 0; iz < structure[iy][ix].length; iz++)
             	{
     				trys++;
-
-    				if(facing == 0 && !mirror && checkBlockPosAndBlockId(pos.up(iy).east(ix).south(iz), structure[iy][ix][iz])) trues++;
-    				if(facing == 1 && !mirror && checkBlockPosAndBlockId(pos.up(iy).south(ix).west(iz), structure[iy][ix][iz])) trues++;
-    				if(facing == 2 && !mirror && checkBlockPosAndBlockId(pos.up(iy).west(ix).north(iz), structure[iy][ix][iz])) trues++;
-    				if(facing == 3 && !mirror && checkBlockPosAndBlockId(pos.up(iy).north(ix).east(iz), structure[iy][ix][iz])) trues++;
     				
-    				if(facing == 0 && mirror && checkBlockPosAndBlockId(pos.up(iy).east(ix).north(iz), structure[iy][ix][iz])) trues++;
-    				if(facing == 1 && mirror && checkBlockPosAndBlockId(pos.up(iy).south(ix).east(iz), structure[iy][ix][iz])) trues++;
-    				if(facing == 2 && mirror && checkBlockPosAndBlockId(pos.up(iy).west(ix).south(iz), structure[iy][ix][iz])) trues++;
-    				if(facing == 3 && mirror && checkBlockPosAndBlockId(pos.up(iy).north(ix).west(iz), structure[iy][ix][iz])) trues++;
+    				if(facing == 0 && !mirror) buffPos = pos.up(iy).east(ix).south(iz);
+    				if(facing == 1 && !mirror) buffPos = pos.up(iy).north(ix).east(iz);
+    				if(facing == 2 && !mirror) buffPos = pos.up(iy).west(ix).north(iz);
+    				if(facing == 3 && !mirror) buffPos = pos.up(iy).south(ix).west(iz);
+    				
+    				if(facing == 0 && mirror) buffPos = pos.up(iy).east(ix).north(iz);
+    				if(facing == 1 && mirror) buffPos = pos.up(iy).north(ix).west(iz);
+    				if(facing == 2 && mirror) buffPos = pos.up(iy).west(ix).south(iz);
+    				if(facing == 3 && mirror) buffPos = pos.up(iy).south(ix).east(iz);
+    				
+    				if(checkBlockPosAndBlockId(worldObj, buffPos, structure[iy][ix][iz])) trues++;
             	}
         	}
     	}
@@ -169,21 +297,49 @@ public class Village
     	return trues/trys;
     }
     
-    public boolean checkBlockPosAndBlockId(BlockPos pos, int id)
+    public static boolean checkBlockPosAndBlockId(World world, BlockPos pos, int id)
     {
     	boolean ret = false;
     	if(id == 0) ret = true;
-    	if(id == 1 && worldObj.getBlockState(pos).isFullBlock() && worldObj.getBlockState(pos).isFullCube()	 && !worldObj.getBlockState(pos).isOpaqueCube()) ret = true;
-    	if(id == 3 && worldObj.getBlockState(pos).getBlock() instanceof BlockDoor) ret = true;
-    	if(id == 5 && worldObj.getBlockState(pos).getBlock() instanceof BlockStairs) ret = true;
-    	if(id == 6 && worldObj.getBlockState(pos).getBlock() instanceof BlockPane) ret = true;
-    	
-    	if(ret) System.out.println(pos.toString() + " id{" + id + "}");
+    	if(id == 1 && world.getBlockState(pos).isFullBlock() && world.getBlockState(pos).isFullCube() && world.getBlockState(pos).isOpaqueCube()) ret = true;
+    	if(id == 3 && world.getBlockState(pos).getBlock() instanceof BlockDoor) ret = true;
+    	if(id == 5 && world.getBlockState(pos).getBlock() instanceof BlockStairs) ret = true;
+    	if(id == 6 && world.getBlockState(pos).getBlock() instanceof BlockPane) ret = true;
     	
     	return ret;
     }
     
-    int z = 0;
+    public static boolean checkBlockAndBlockID(Block block, int id)
+    {
+    	boolean ret = false;
+    	if(id == 0) ret = true;
+    	if(id == 1 && block.getDefaultState().isFullBlock() && block.getDefaultState().isFullCube()	 && block.getDefaultState().isOpaqueCube()) ret = true;
+    	if(id == 3 && block.getDefaultState().getBlock() instanceof BlockDoor) ret = true;
+    	if(id == 5 && block.getDefaultState().getBlock() instanceof BlockStairs) ret = true;
+    	if(id == 6 && block.getDefaultState().getBlock() instanceof BlockPane) ret = true;
+    	
+    	return ret;
+    }
+    
+    public static boolean checkItemFromItemStackAndBlockID(ItemStack is, int id)
+    {
+    	boolean ret = false;
+    	
+		Block block = Block.getBlockById(Item.getIdFromItem(is.getItem()));
+		if(is != ItemStack.field_190927_a && block != Blocks.AIR);
+		{
+	    	if(id == 0) ret = true;
+	    	if(id == 1 && block.getDefaultState().isFullBlock() && block.getDefaultState().isFullCube()	 && block.getDefaultState().isOpaqueCube()) ret = true;
+	    	if(id == 3 && block.getDefaultState().getBlock() instanceof BlockDoor) ret = true;
+	    	if(id == 3 && is.getItem() instanceof ItemDoor) ret = true;
+	    	if(id == 5 && block.getDefaultState().getBlock() instanceof BlockStairs) ret = true;
+	    	if(id == 6 && block.getDefaultState().getBlock() instanceof BlockPane) ret = true;
+		}
+    	
+    	
+    	return ret;
+    }
+
     /**
      * Called periodically by VillageCollection
      */
@@ -217,15 +373,15 @@ public class Village
                 ++this.numIronGolems;
             }
         }
-
-        if (tickCounterIn % 120 == 0 && z < 1)
+        
+        if(this.tickCounter % 20 == 0)
         {
-        	MinecraftServer.theServer.sendMessageForAll("Doors in village count: " + villageDoorInfoList.size());
-        	checkAllDoors();
-        	z++;
+        	if(StructureIndexForUpdateHouse >= this.getVillageDoorInfoList().size()) StructureIndexForUpdateHouse = 0;
+        	updateHouse(StructureIndexForUpdateHouse);
+    		StructureIndexForUpdateHouse++;
         }
     }
-
+    
     private Vec3d findRandomSpawnPos(BlockPos pos, int x, int y, int z)
     {
         for (int i = 0; i < 10; ++i)

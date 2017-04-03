@@ -1,0 +1,95 @@
+---- Minecraft Crash Report ----
+// You should try our sister game, Minceraft!
+
+Time: 02.04.17 21:21
+Description: Ticking entity
+
+java.lang.NullPointerException: Ticking entity
+	at ru.ilyyya.serverTestModification.VillagerTasks.VillageStructure.getBlockForRepair(VillageStructure.java:103)
+	at ru.ilyyya.serverTestModification.VillagerTasks.RepairHouseAI.shouldExecute(RepairHouseAI.java:29)
+	at net.minecraft.entity.ai.EntityAITasks.onUpdateTasks(EntityAITasks.java:80)
+	at net.minecraft.entity.EntityLiving.updateEntityActionState(EntityLiving.java:831)
+	at net.minecraft.entity.EntityLivingBase.onLivingUpdate(EntityLivingBase.java:2420)
+	at net.minecraft.entity.EntityLiving.onLivingUpdate(EntityLiving.java:634)
+	at net.minecraft.entity.EntityAgeable.onLivingUpdate(EntityAgeable.java:194)
+	at net.minecraft.entity.EntityLivingBase.onUpdate(EntityLivingBase.java:2246)
+	at net.minecraft.entity.EntityLiving.onUpdate(EntityLiving.java:338)
+	at net.minecraft.world.World.updateEntityWithOptionalForce(World.java:1746)
+	at net.minecraft.world.WorldServer.updateEntityWithOptionalForce(WorldServer.java:829)
+	at net.minecraft.world.World.updateEntity(World.java:1716)
+	at net.minecraft.world.World.updateEntities(World.java:1559)
+	at net.minecraft.world.WorldServer.updateEntities(WorldServer.java:604)
+	at net.minecraft.server.MinecraftServer.updateTimeLightAndEntities(MinecraftServer.java:809)
+	at net.minecraft.server.dedicated.DedicatedServer.updateTimeLightAndEntities(DedicatedServer.java:393)
+	at net.minecraft.server.MinecraftServer.tick(MinecraftServer.java:714)
+	at net.minecraft.server.MinecraftServer.run(MinecraftServer.java:585)
+	at java.lang.Thread.run(Unknown Source)
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- Head --
+Thread: Server thread
+Stacktrace:
+	at ru.ilyyya.serverTestModification.VillagerTasks.VillageStructure.getBlockForRepair(VillageStructure.java:103)
+	at ru.ilyyya.serverTestModification.VillagerTasks.RepairHouseAI.shouldExecute(RepairHouseAI.java:29)
+	at net.minecraft.entity.ai.EntityAITasks.onUpdateTasks(EntityAITasks.java:80)
+	at net.minecraft.entity.EntityLiving.updateEntityActionState(EntityLiving.java:831)
+	at net.minecraft.entity.EntityLivingBase.onLivingUpdate(EntityLivingBase.java:2420)
+	at net.minecraft.entity.EntityLiving.onLivingUpdate(EntityLiving.java:634)
+	at net.minecraft.entity.EntityAgeable.onLivingUpdate(EntityAgeable.java:194)
+	at net.minecraft.entity.EntityLivingBase.onUpdate(EntityLivingBase.java:2246)
+	at net.minecraft.entity.EntityLiving.onUpdate(EntityLiving.java:338)
+	at net.minecraft.world.World.updateEntityWithOptionalForce(World.java:1746)
+	at net.minecraft.world.WorldServer.updateEntityWithOptionalForce(WorldServer.java:829)
+	at net.minecraft.world.World.updateEntity(World.java:1716)
+
+-- Entity being ticked --
+Details:
+	Entity Type: minecraft:villager (net.minecraft.entity.passive.EntityVillager)
+	Entity ID: 73
+	Entity Name: Villager
+	Entity's Exact location: 1093,67, 68,00, -190,75
+	Entity's Block location: World: (1093,68,-191), Chunk: (at 5,4,1 in 68,-12; contains blocks 1088,0,-192 to 1103,255,-177), Region: (2,-1; contains chunks 64,-32 to 95,-1, blocks 1024,0,-512 to 1535,255,-1)
+	Entity's Momentum: 0,00, -0,08, 0,02
+	Entity's Passengers: []
+	Entity's Vehicle: ~~ERROR~~ NullPointerException: null
+Stacktrace:
+	at net.minecraft.world.World.updateEntities(World.java:1559)
+	at net.minecraft.world.WorldServer.updateEntities(WorldServer.java:604)
+
+-- Affected level --
+Details:
+	Level name: testingworld2
+	All players: 1 total; [EntityPlayerMP['ilYYYa777'/83, l='testingworld2', x=1101,40, y=68,00, z=-176,48]]
+	Chunk stats: ServerChunkCache: 1066 Drop: 0
+	Level seed: -5097453347866882123
+	Level generator: ID 02 - largeBiomes, ver 0. Features enabled: true
+	Level generator options: 
+	Level spawn location: World: (216,64,-164), Chunk: (at 8,4,12 in 13,-11; contains blocks 208,0,-176 to 223,255,-161), Region: (0,-1; contains chunks 0,-32 to 31,-1, blocks 0,0,-512 to 511,255,-1)
+	Level time: 85982 game time, 9009 day time
+	Level dimension: 0
+	Level storage version: 0x04ABD - Anvil
+	Level weather: Rain time: 1 (now: false), thunder time: 1 (now: false)
+	Level game mode: Game mode: survival (ID 0). Hardcore: false. Cheats: false
+Stacktrace:
+	at net.minecraft.server.MinecraftServer.updateTimeLightAndEntities(MinecraftServer.java:809)
+	at net.minecraft.server.dedicated.DedicatedServer.updateTimeLightAndEntities(DedicatedServer.java:393)
+	at net.minecraft.server.MinecraftServer.tick(MinecraftServer.java:714)
+	at net.minecraft.server.MinecraftServer.run(MinecraftServer.java:585)
+	at java.lang.Thread.run(Unknown Source)
+
+-- System Details --
+Details:
+	Minecraft Version: 1.11.2
+	Operating System: Windows 10 (amd64) version 10.0
+	Java Version: 1.8.0_91, Oracle Corporation
+	Java VM Version: Java HotSpot(TM) 64-Bit Server VM (mixed mode), Oracle Corporation
+	Memory: 186353064 bytes (177 MB) / 296222720 bytes (282 MB) up to 1877475328 bytes (1790 MB)
+	JVM Flags: 0 total; 
+	IntCache: cache: 0, tcache: 0, allocated: 12, tallocated: 98
+	Profiler Position: N/A (disabled)
+	Player Count: 1 / 10; [EntityPlayerMP['ilYYYa777'/83, l='testingworld2', x=1101,40, y=68,00, z=-176,48]]
+	Is Modded: Unknown (can't tell)
+	Type: Dedicated Server (map_server.txt)

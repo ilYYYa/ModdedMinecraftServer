@@ -246,7 +246,6 @@ public class ilStructures
 				{0,0,0,0}
 			}
 		};
-	
 	public static final int[][][] VillageHouseT2 =
 		{
 			{

@@ -210,6 +210,7 @@ public abstract class MinecraftServer implements Runnable, ICommandSender, IThre
     
     public void sendMessageForAll(String msg)
     {
+    	System.out.println("msg For All: " + msg);
     	for(int i = 0; i < getPlayerList().getCurrentPlayerCount(); i++)
     	{
         	getPlayerList().getPlayerList().get(i).addChatMessage(new TextComponentString(msg));

@@ -1,0 +1,67 @@
+---- Minecraft Crash Report ----
+// Daisy, daisy...
+
+Time: 02.04.17 18:39
+Description: Exception ticking world
+
+java.lang.ArrayIndexOutOfBoundsException: -1
+	at ru.ilyyya.serverTestModification.VillagerTasks.VillageStructure.getStructureByFacingAndMirroring(VillageStructure.java:191)
+	at ru.ilyyya.serverTestModification.VillagerTasks.VillageStructure.test(VillageStructure.java:83)
+	at net.minecraft.village.Village.updateHouse(Village.java:139)
+	at net.minecraft.village.Village.tick(Village.java:347)
+	at net.minecraft.village.VillageCollection.tick(VillageCollection.java:69)
+	at net.minecraft.world.WorldServer.tick(WorldServer.java:226)
+	at net.minecraft.server.MinecraftServer.updateTimeLightAndEntities(MinecraftServer.java:796)
+	at net.minecraft.server.dedicated.DedicatedServer.updateTimeLightAndEntities(DedicatedServer.java:393)
+	at net.minecraft.server.MinecraftServer.tick(MinecraftServer.java:714)
+	at net.minecraft.server.MinecraftServer.run(MinecraftServer.java:585)
+	at java.lang.Thread.run(Unknown Source)
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- Head --
+Thread: Server thread
+Stacktrace:
+	at ru.ilyyya.serverTestModification.VillagerTasks.VillageStructure.getStructureByFacingAndMirroring(VillageStructure.java:191)
+	at ru.ilyyya.serverTestModification.VillagerTasks.VillageStructure.test(VillageStructure.java:83)
+	at net.minecraft.village.Village.updateHouse(Village.java:139)
+	at net.minecraft.village.Village.tick(Village.java:347)
+	at net.minecraft.village.VillageCollection.tick(VillageCollection.java:69)
+	at net.minecraft.world.WorldServer.tick(WorldServer.java:226)
+
+-- Affected level --
+Details:
+	Level name: testingworld2
+	All players: 1 total; [EntityPlayerMP['ilYYYa777'/185, l='testingworld2', x=1139,09, y=64,00, z=-382,11]]
+	Chunk stats: ServerChunkCache: 1066 Drop: 0
+	Level seed: -5097453347866882123
+	Level generator: ID 02 - largeBiomes, ver 0. Features enabled: true
+	Level generator options: 
+	Level spawn location: World: (216,64,-164), Chunk: (at 8,4,12 in 13,-11; contains blocks 208,0,-176 to 223,255,-161), Region: (0,-1; contains chunks 0,-32 to 31,-1, blocks 0,0,-512 to 511,255,-1)
+	Level time: 46597 game time, 4289 day time
+	Level dimension: 0
+	Level storage version: 0x04ABD - Anvil
+	Level weather: Rain time: 1 (now: false), thunder time: 1 (now: false)
+	Level game mode: Game mode: survival (ID 0). Hardcore: false. Cheats: false
+Stacktrace:
+	at net.minecraft.server.MinecraftServer.updateTimeLightAndEntities(MinecraftServer.java:796)
+	at net.minecraft.server.dedicated.DedicatedServer.updateTimeLightAndEntities(DedicatedServer.java:393)
+	at net.minecraft.server.MinecraftServer.tick(MinecraftServer.java:714)
+	at net.minecraft.server.MinecraftServer.run(MinecraftServer.java:585)
+	at java.lang.Thread.run(Unknown Source)
+
+-- System Details --
+Details:
+	Minecraft Version: 1.11.2
+	Operating System: Windows 10 (amd64) version 10.0
+	Java Version: 1.8.0_91, Oracle Corporation
+	Java VM Version: Java HotSpot(TM) 64-Bit Server VM (mixed mode), Oracle Corporation
+	Memory: 289787896 bytes (276 MB) / 397934592 bytes (379 MB) up to 1877475328 bytes (1790 MB)
+	JVM Flags: 0 total; 
+	IntCache: cache: 0, tcache: 0, allocated: 12, tallocated: 98
+	Profiler Position: N/A (disabled)
+	Player Count: 1 / 10; [EntityPlayerMP['ilYYYa777'/185, l='testingworld2', x=1139,09, y=64,00, z=-382,11]]
+	Is Modded: Unknown (can't tell)
+	Type: Dedicated Server (map_server.txt)

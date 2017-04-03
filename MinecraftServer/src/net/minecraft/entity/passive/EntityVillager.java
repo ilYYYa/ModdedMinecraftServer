@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.minecraft.block.Block;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -89,7 +90,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.storage.MapData;
 import net.minecraft.world.storage.MapDecoration;
 import net.minecraft.world.storage.loot.LootTableList;
-import ru.ilyyya.serverTestModification.VillagerTasks.MoveAwayFromTheVillage;
+import ru.ilyyya.serverTestModification.VillagerTasks.RepairHouseAI;
 
 public class EntityVillager extends EntityAgeable implements INpc, IMerchant
 {
@@ -155,7 +156,6 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
         this.tasks.addTask(2, new EntityAIMoveIndoors(this));
         this.tasks.addTask(3, new EntityAIRestrictOpenDoor(this));
         this.tasks.addTask(4, new EntityAIOpenDoor(this, true));
-        //this.tasks.addTask(5, new MoveAwayFromTheVillage(this)); // modified
         this.tasks.addTask(5, new EntityAIMoveTowardsRestriction(this, 0.6D));
         this.tasks.addTask(6, new EntityAIVillagerMate(this));
         this.tasks.addTask(7, new EntityAIFollowGolem(this));
@@ -179,6 +179,10 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
             {
                 this.tasks.addTask(6, new EntityAIHarvestFarmland(this, 0.6D));
             }
+            else if (this.getProfession() != 0)
+            {
+                this.tasks.addTask(8, new RepairHouseAI(this));
+            }
         }
     }
 
@@ -192,9 +196,10 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
         {
             this.tasks.addTask(8, new EntityAIHarvestFarmland(this, 0.6D));
         }
-
-        getVillagerInventory().addItem(new ItemStack(Blocks.DIRT, (int)(Math.random() * 32)));
-        getVillagerInventory().addItem(new ItemStack(Blocks.COBBLESTONE, (int)(Math.random() * 32)));
+        else if (this.getProfession() != 0)
+        {
+            this.tasks.addTask(8, new RepairHouseAI(this));
+        }
 
         super.onGrowingAdult();
     }
@@ -917,7 +922,7 @@ public class EntityVillager extends EntityAgeable implements INpc, IMerchant
 
     private boolean canVillagerPickupItem(Item itemIn)
     {
-        return itemIn == Items.BREAD || itemIn == Items.POTATO || itemIn == Items.CARROT || itemIn == Items.WHEAT || itemIn == Items.WHEAT_SEEDS || itemIn == Items.BEETROOT || itemIn == Items.BEETROOT_SEEDS;
+        return true;
     }
 
     public boolean hasEnoughFoodToBreed()
